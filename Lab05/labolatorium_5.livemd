@@ -1,0 +1,166 @@
+<!-- livebook:{"file_entries":[{"file":{"file_system_id":"local","file_system_type":"local","path":"d:/AGH/Semestr IV/Erlang/Lab05/AirlyData-ALL-50k.csv"},"name":"AirlyData-ALL-50k.csv","type":"file"}]} -->
+
+# Labolatorium 5
+
+## Reading data
+
+```elixir
+lines = File.read!("d:/AGH/Semestr IV/Erlang/Lab05/AirlyData-ALL-50k.csv") 
+|> String.split("\n", trim: true) 
+```
+
+trim usuwa na puste stringi z listy, które są na początku lub na końcu listy
+
+## Parser module
+
+```elixir
+defmodule DataParse do
+  def parseLine(l) do
+    [date_time,type,val,station_id,name,cords] = String.split(l,";")
+    date = date_time |> String.slice(0..18) 
+      |> String.replace("T", "-") 
+      |> String.split(["-",":"]) 
+      |> Enum.map(&String.to_integer/1) 
+      |> then(fn [y,m,d,h,min,s] -> {{y,m,d},{h,min,s}} end)
+    [loc1,loc2] = String.split(cords,",")
+
+    %{
+      :datetime => date,
+      :location => {String.to_float(loc1), String.to_float(loc2)},
+      :stationId => String.to_integer(station_id),
+      :stationName => name,
+      :pollutionType => type,
+      :pollutionLevel => String.to_float(val)
+    }
+  end
+
+  def identifyStation(data) do
+    data |> Enum.map(fn record -> {record.location, record.stationId, record.stationName} end) 
+    |> Enum.uniq_by(fn x -> x end)
+  end
+end
+```
+
+```elixir
+data = for line <- lines do
+  DataParse.parseLine(line)
+end
+
+unique_stations = DataParse.identifyStation(data)
+IO.puts("Number of stations: #{unique_stations |> length()}")
+
+data
+```
+
+```elixir
+# Code.append_path(
+#   "D:\\AGH\\Semestr IV\\Erlang\\pollution_server\\_build\\default\\lib\\pollution_server\\ebin"
+# )
+
+# monitor = :pollution.create_monitor()
+# monitor2 = :pollution.add_station("MyStation",{50.1, 50.1},monitor)
+# monitor3 = :pollution.add_value("MyStation", {{2024, 2, 10}, {15, 0, 0}}, "PM10", 42,monitor2)
+# :pollution.get_station_min("MyStation", "PM10",monitor3)
+```
+
+## Empty monitor
+
+```elixir
+Code.append_path(
+  "D:\\AGH\\Semestr IV\\Erlang\\pollution_server\\_build\\default\\lib\\pollution_server\\ebin"
+)
+
+Application.stop(:pollution_server)
+Application.start(:pollution_server)
+```
+
+```elixir
+# :pollution_gen_server.add_station("MyStation", {50.01, 20.01})
+# :pollution_gen_server.add_value("MyStation", {{2024, 2, 10}, {15, 0, 0}}, "PM10", 42)
+```
+
+```elixir
+# :pollution_gen_server.get_station_min("MyStation", "PM10")
+```
+
+## Loding stations
+
+```elixir
+add_stat = fn -> 
+  for {loc,id,name} <- unique_stations do
+    stat_name = "#{id} #{name}"
+    :pollution_gen_server.add_station(stat_name, loc)
+  end
+end
+
+insert_data = fn -> 
+  for station <- data do
+    :pollution_gen_server.add_value(
+      station.location,
+      station.datetime,
+      station.pollutionType,
+      station.pollutionLevel
+    )
+  end
+end
+```
+
+## get functions
+
+```elixir
+get_st_val = fn ->
+  :pollution_gen_server.get_station_min("9910 Polska, Kraków, Studencka", "PM10")
+end
+get_st_val |> Timer.measure_time_res()
+```
+
+```elixir
+get_st_min = fn ->
+  :pollution_gen_server.get_daily_mean("PM25", {2024, 2, 10})
+end
+get_st_min |> Timer.measure_time_res()
+```
+
+## Timers
+
+```elixir
+defmodule Timer do
+  def measure_time(function) do
+    t = function |> :timer.tc |> elem(0)
+    t / 1_000_000
+  end
+
+  def measure_time_res(function) do
+    {t, res} = function |> :timer.tc
+    {t / 1_000_000, res}
+  end
+end
+
+```
+
+```elixir
+add_stat |> Timer.measure_time()
+```
+
+```elixir
+insert_data |> Timer.measure_time()
+```
+
+```erlang
+whereis(pollution_gen_server).
+```
+
+## Homework (Loader)
+
+```elixir
+defmodule PollutionDataLoader do
+  def load(file_arr) do
+    data = for line <- file_arr do
+      DataParse.parseLine(line)
+    end
+    data
+  end
+end
+```
+
+<!-- livebook:{"offset":3659,"stamp":{"token":"XCP.PhzaYQBUggfVkmjSUa6RJSTuOZyZlBecOwAxSwcMEOJqelZ-N5OEBqYsOrzwmUaGcpUpJMY_yWdSCd96Be1Rev4XOFaVwhV9k9zxTA","version":2}} -->

@@ -1,0 +1,333 @@
+# Wstęp do języka Elixir (Składnia)
+
+## Nil
+
+```elixir
+nil
+To_jest_atom
+:to_tez
+is_atom(To_jest_atom)
+```
+
+## String
+
+* String - nowy typ, nadbudowany nad binary
+* Lista znaków też jest: 'alamakota'
+
+```elixir
+#'Lista znaków'
+#'ab'++'cde'
+#"Ciąg znaków"
+"Ala" <> " ma kota"
+```
+
+## Zmienne
+
+* Zmienne są mutowalne
+* Nazywamy je małą literą
+
+```elixir
+z = 2
+z
+```
+
+## Kolekcje
+
+<!-- livebook:{"branch_parent_index":3} -->
+
+## Krotki
+
+* Praktycznie to samo
+
+```elixir
+a = Siema
+tuple = {a,2,:bajo_jajo}
+elem(tuple, 1)
+
+tp = {:ok, 42}
+{:ok, val} = tp
+val
+```
+
+<!-- livebook:{"branch_parent_index":3} -->
+
+## Listy
+
+* Również bez większych zmian
+
+```elixir
+list = [1,2,:ala_ma_kota]
+list = list ++ [3,4.0]
+[head | tail] = list
+tail
+```
+
+<!-- livebook:{"branch_parent_index":3} -->
+
+## Proplists
+
+* Sugar syntax, klucze to atomy
+
+```elixir
+lista = [ala: "makota", akto: "maalę"]
+Keyword.get(lista,:ala)
+```
+
+<!-- livebook:{"branch_parent_index":3} -->
+
+## Mapy
+
+* Po prostu inne składniowo, ale zamysłowo to samo
+
+```elixir
+mapa = %{:key => "value", 4 => 5}
+element = mapa[:key]
+new_mapa = %{mapa | :key => "val3"} #Tylko nadpisanie
+new_mapa.key #tylko jak klucz to atom
+Map.put(new_mapa, :key3, 15) #Trzeba to przypisać
+Map.delete(new_mapa, :key)
+```
+
+## Pattern Matching
+
+* Teraz = to nie operator Pattern Matchingu tylko przypisania
+* W Elixir mamy ^wyrażenie (Czyli bez przypisania)
+
+```elixir
+^x = 3
+```
+
+## List Comprehensions
+
+```elixir
+list = for x <- [1,2,3,4] do x+1 end
+list2 = for x <- 1..10, rem(x,2) == 0 do x end
+
+#Do proplist też działa
+
+proplist = for {_k, v} <- %{:k1=>1,:two=>"two",3=>:three}, do: v #dwie składnie
+```
+
+## Warunki
+
+<!-- livebook:{"branch_parent_index":10} -->
+
+## if
+
+```elixir
+ala = :makota
+
+if ala == :makota do
+  "Ala ma psa"
+else 
+  ala = :juzniemakota
+  "Ala miała kota"
+end
+```
+
+<!-- livebook:{"branch_parent_index":10} -->
+
+## cond
+
+* Takie jak if w Erlangu
+
+```elixir
+ala = :makota
+
+cond do
+  ala == :makota -> "Ma kota"
+  ala == :mapsa -> "Ma psa"
+  true -> "Nie ma nic XD"
+end
+```
+
+<!-- livebook:{"branch_parent_index":10} -->
+
+## case
+
+```elixir
+a = 1
+
+case a do
+  {12} -> 12
+  :aa -> :aa
+  z when is_atom(z) -> z
+  _ -> :cos
+end
+```
+
+## Moduły i funkcje
+
+* W pliku może być kilka modułów
+
+```elixir
+defmodule Hi do
+  def hello(name) do
+    "Hello, "<>name
+  end
+end
+
+Hi.hello("Mati")
+```
+
+* Funkcje defaultowo są exportowane
+* defp tworzy funkcje prywatną
+
+```elixir
+defmodule MyModule do
+  def a() do
+    :sayA
+  end
+  defp b() do
+    :sayBB
+  end
+end
+
+MyModule.b()
+```
+
+```elixir
+defmodule Rec do
+  def factorial(0) do 1 end
+  def factorial(n) do factorial(n-1)*n end
+  def makota() do :makota end
+end
+
+Rec.factorial(5)
+```
+
+```elixir
+defmodule Recursion do
+ def niemakota do :niemakota end
+ def ilekotow k do "kotow #{k} jest" end
+ def ilekotowapsow k, l do "kotow #{k} jest, psow: #{l}" end
+end
+
+Recursion.ilekotow(3)
+```
+
+* Wartość domyślna
+
+```elixir
+defmodule A do
+  def f(x \\ 3) do
+    "Liczba: #{x}"
+  end
+end
+
+A.f()
+```
+
+<!-- livebook:{"branch_parent_index":14} -->
+
+## Funkcje anonimowe
+
+```elixir
+sum = fn (a,b) -> a+b end
+sum.(3,4)
+
+up = &String.upcase/1
+up.("alamakota")
+```
+
+* Dla notacji & oznaczenie &1 to oznacza argument 1
+
+## Pipe
+
+```elixir
+"ala ma kota" |> String.upcase |> String.split
+
+"ala ma kota" |> String.to_charlist() |> Enum.map(& (&1+1)) |> to_string
+```
+
+```elixir
+#Atrybuty modułów
+
+defmodule Makota do
+  @makota "ma kota!"
+
+  def ma kto do
+    "#{kto} #{@makota}"
+  end
+end
+
+Makota.ma("Cuś")
+```
+
+## Struktury
+
+* To tak na prawdę mapa (sugar syntax)
+* Tylko jedna struktura na moduł
+
+```elixir
+defmodule Person do
+    defstruct name: "", surname: "", sex: :unknown
+end
+```
+
+* Użycie
+
+```elixir
+default = %Person{}
+```
+
+## Procesy
+
+```elixir
+defmodule ProcModule do
+  def printAndSpawn(0) do nil end
+  def printAndSpawn(n) do
+    spawn(__MODULE__, :printAndSpawn, [n-1])
+    Process.sleep(:rand.uniform(1000)) #rand wywołany z Erlanga
+    IO.puts("terminating #{n}")
+  end
+end
+
+ProcModule.printAndSpawn(5)
+```
+
+<!-- livebook:{"branch_parent_index":18} -->
+
+## Komunikacja międzyprocesowa
+
+* Nie ma !
+* funk!(a) to legalna nazwa funkcji
+
+```elixir
+defmodule Receiver do
+  def printMessage do
+    receive do
+      message -> IO.puts("got: #{message}")
+    end
+    printMessage()
+  end
+end
+
+pid = spawn(Receiver, :printMessage, [])
+send(pid, "Ala ma kota")
+```
+
+## Protokoły
+
+* Protokoły = Interface
+* Czyli implementace dla różnych typów
+
+```elixir
+defprotocol Empty do
+  def empty? (t)
+end
+
+defimpl Empty, for: List do
+  def empty? (l) do
+    length(l) == 0
+  end
+end
+
+defimpl Empty, for: Map do
+  def empty?(m), do: map_size(m) == 0
+end
+
+Empty.empty?([])
+```
+
+* Wbudowanymi protokołami jest np Enum lub Stream (leniwy Enum)
